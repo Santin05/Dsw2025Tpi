@@ -1,4 +1,8 @@
 # Trabajo Práctico Integrador
+## Integrantes
+	- Ammiraglia Santino, 58052
+	- Lazarte Luciana, 58199
+	- Liendro Oriana, 58490
 ## Desarrollo de Software
 ### Backend
 
