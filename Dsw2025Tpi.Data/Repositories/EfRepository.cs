@@ -1,5 +1,7 @@
-﻿using Dsw2025Tpi.Domain.Entities;
+﻿using Dsw2025Tpi.Data.Source;
+using Dsw2025Tpi.Domain.Entities;
 using Dsw2025Tpi.Domain.Interfaces;
+using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
 namespace Dsw2025Tpi.Data.Repositories;
@@ -8,11 +10,13 @@ public class EfRepository: IRepository
 {
     private readonly Dsw2025TpiContext _context;
 
-    public EfRepository(Dsw2025TpiContext context)
+    public EfRepository(Dsw2025TpiContext context) 
     {
         _context = context;
+        _context.LoadData(_context);
     }
 
+    
     public async Task<T> Add<T>(T entity) where T : EntityBase
     {
         await _context.AddAsync(entity);
@@ -39,7 +43,7 @@ public class EfRepository: IRepository
 
     public async Task<T?> GetById<T>(Guid id, params string[] include) where T : EntityBase
     {
-        return await Include(_context.Set<T>(), include).FirstOrDefaultAsync(e => e.Id == id);
+        return await Include(_context.Set<T>(), include).FirstOrDefaultAsync(e => e.id == id);
     }
 
     public async Task<IEnumerable<T>?> GetFiltered<T>(Expression<Func<T, bool>> predicate, params string[] include) where T : EntityBase
