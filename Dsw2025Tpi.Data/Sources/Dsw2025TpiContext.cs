@@ -17,7 +17,7 @@ public class Dsw2025TpiContext : IdentityDbContext<IdentityUser>
     {
         context.Database.ExecuteSqlRaw("TRUNCATE TABLE Customers");
 
-        var fileName = @"C:\Users\Santino\Desktop\DSW2025TPI\Dsw2025Tpi\Dsw2025Tpi.Data\Sources\customers.json";
+        var fileName = @"C:\Users\Santino\Desktop\PRIMERA PRESENTACIÓN (errores coregidos)\Dsw2025Tpi\Dsw2025Tpi.Data\Sources\customers.json";
         var read = File.ReadAllText(fileName);
         var data = JsonSerializer.Deserialize<List<Customer>>(read);
         if (data != null)
