@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Dsw2025Tpi.Application.Services;
-using System.Threading.Tasks;
 using Dsw2025Tpi.Application.Dtos;
 using Dsw2025Tpi.Application.Exceptions;
 using Microsoft.AspNetCore.Authorization;
@@ -9,6 +8,7 @@ namespace Dsw2025Tpi.Api.Controllers
 {
     [ApiController]
     [Route("api/products")]
+    [Authorize(Roles = "Admin")]
     public class ProductController : ControllerBase
     {
         private readonly ProductsManagementService _productsManagementService;
@@ -20,6 +20,7 @@ namespace Dsw2025Tpi.Api.Controllers
 
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetAllProducts()
         {
             try 
@@ -30,21 +31,26 @@ namespace Dsw2025Tpi.Api.Controllers
             catch (NoFoundEntityException) 
             {
                 return NoContent();
-            }  
+            }
+            catch (ArgumentException ex)
+            {
+                return NotFound(ex.Message);
+            }
+
         }
 
         [HttpGet("{id}")]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> GetProductsById(Guid id) 
+        public async Task<IActionResult> GetProductById(Guid id) 
         {
             try
             {
                 var products = await _productsManagementService.getProductById(id);
                 return Ok(products);
             }
-            catch (NoFoundEntityException)
+            catch (NoFoundEntityException ex)
             {
-                return NoContent();
+                return NotFound(ex.Message);
             }
         }
 
@@ -56,15 +62,19 @@ namespace Dsw2025Tpi.Api.Controllers
             try 
             {
                 var product = await _productsManagementService.addProduct(data);
-                return Ok(product);
+                return Created($"/api/products/{product.Id}", product);
             }
-            catch(DuplicateEntityException) 
+            catch(DuplicateEntityException ex) 
             {
-                return BadRequest("Producto duplicado.");
+                return BadRequest(ex.Message);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
             }
         }
 
-        [HttpPut]
+        [HttpPut("{id}")]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> UpdateProduct(Guid id, [FromBody] ProductModel.Request data) 
@@ -74,17 +84,17 @@ namespace Dsw2025Tpi.Api.Controllers
                 await _productsManagementService.upgrateProduct(id, data);
                 return Ok("Producto modificado con exito.");
             }
-            catch(DuplicateEntityException) 
+            catch(DuplicateEntityException ex) 
             {
-                return BadRequest("Producto duplicado.");
+                return BadRequest(ex.Message);
             }
-            catch(NoFoundEntityException) 
+            catch(NoFoundEntityException ex) 
             {
-                return NotFound($"No hay producto con ID {id}");
+                return NotFound(ex.Message);
             }
-            catch(ArgumentException) 
+            catch(ArgumentException ex) 
             {
-                return BadRequest("Los nuevos valores del producto no son validos.");
+                return BadRequest(ex.Message);
             }
         }
 
@@ -112,9 +122,9 @@ namespace Dsw2025Tpi.Api.Controllers
                 await _productsManagementService.disableProduct(id);
                 return NoContent();
             }
-            catch (NoFoundEntityException)
+            catch (NoFoundEntityException ex)
             {
-                return NotFound($"No hay producto con ID {id}");
+                return NotFound(ex.Message);
             }
         }
     }

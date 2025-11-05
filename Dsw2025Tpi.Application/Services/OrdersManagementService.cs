@@ -1,15 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Dsw2025Tpi.Domain.Interfaces;
+﻿using Dsw2025Tpi.Domain.Interfaces;
 using Dsw2025Tpi.Domain.Entities;
 using Dsw2025Tpi.Application.Models;
 using Dsw2025Tpi.Application.Exceptions;
-using System.Linq.Expressions;
-using System.Collections.Immutable;
-using System.ComponentModel;
+using Dsw2025Tpi.Application.Dtos;
+using System.Net.Http.Headers;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Dsw2025Tpi.Application.Services
 {
@@ -23,13 +18,41 @@ namespace Dsw2025Tpi.Application.Services
 
         public async Task<OrderModel.Response> addOrder(OrderModel.Request order) 
         {
-            if( String.IsNullOrWhiteSpace(order.ShipppingAddress) || String.IsNullOrWhiteSpace(order.BillingAddress) || order.ItemsOrder == null ) 
+
+            if ( String.IsNullOrWhiteSpace(order.shippingAddress) || String.IsNullOrWhiteSpace(order.billingAddress) || order.orderItems == null ) 
             {
                 throw new ArgumentException("Los datos ingresados de la orden no son válidos.");
             }
+
+            if( await _repository.First<Customer>(p => p.id == order.customerId) == null) 
+            {
+                throw new ArgumentException($"Cliente con el ID {order.customerId} no encontrado en la base de datos.");
+            }
             else 
             {
-                bool b = false, c = false;
+                OrderModel.Item itemDuplicate, itemNew;
+                var itemsOrderFinish = new List<OrderModel.Item>();
+                foreach (var q in order.orderItems.ToList()) 
+                {
+                    if(itemsOrderFinish.Any()==false)
+                    {
+                        itemsOrderFinish.Add(q);
+                    }
+                    else 
+                    {
+                        if(itemsOrderFinish.Exists(p => p.productId == q.productId))
+                        {
+                            itemDuplicate = itemsOrderFinish.Find(p => p.productId == q.productId);
+                            itemsOrderFinish.Remove(itemDuplicate);
+                            itemNew = new OrderModel.Item(itemDuplicate.productId, (itemDuplicate.quantity+q.quantity), itemDuplicate.name, itemDuplicate.description, itemDuplicate.currentUnitPrice);
+                            itemsOrderFinish.Add(itemNew);
+                        }
+                        else 
+                        {
+                            itemsOrderFinish.Add(q);
+                        }
+                    }
+                }
                 decimal TotalAmount = 0;
                 OrderItem itemInOrder;
                 List<OrderItem> allItems = new List<OrderItem>();
@@ -37,16 +60,19 @@ namespace Dsw2025Tpi.Application.Services
                 var allProducts = await _repository.GetAll<Product>();
                 var orderAdd = new Order();
 
-                foreach (var q in order.ItemsOrder) 
+                foreach (var q in itemsOrderFinish) 
                 {
-                    b = false;
                     if(q.quantity <= 0) 
                     {
-                        throw new ArgumentException("Los datos ingresados de los productos de la orden no son válidos.");
+                        throw new ArgumentException("Cantidad de uno de los productos menor/igual a cero.");
+                    }
+                    if (!(allProducts.ToList().Exists(p => ( p.id == q.productId && p.name == q.name && p.currentUnitPrice == q.currentUnitPrice ))))
+                    {
+                        throw new NoFoundEntityException($"No existe un producto que está en la orden con el ID, Nombre o precio indicado.");
                     }
                     foreach (Product p in allProducts) 
                     {
-                        if (p.Id == q.productId && p.name == q.name && q.currentUnitPrice > 0)
+                        if (p.id == q.productId && p.name == q.name && p.currentUnitPrice == q.currentUnitPrice)
                         {
                             if(q.quantity > p.stockQuantity) 
                             {
@@ -57,53 +83,28 @@ namespace Dsw2025Tpi.Application.Services
                                 throw new ArgumentException("Existen productos inhabilitados en la orden.");
                             }
 
-                            c = false;
-
                             itemInOrder = new OrderItem();
                             itemInOrder.skuProduct = p.sku;
                             itemInOrder.quantity = q.quantity;
                             itemInOrder.unitPrice = q.currentUnitPrice;
                             itemInOrder.subTotal = (q.currentUnitPrice * q.quantity);
-                            itemInOrder.orderId = orderAdd.Id;
+                            itemInOrder.orderId = orderAdd.id;
 
                             TotalAmount += itemInOrder.subTotal;
 
-                            b = true;
-
-                            foreach (Product j in allProductsUpdate.ToList())
-                            {
-                                if (j.Id == q.productId && j.name == q.name)
-                                {
-                                    j.stockQuantity = (j.stockQuantity - q.quantity);
-                                    if(j.stockQuantity < 0) 
-                                    {
-                                        throw new ArgumentException("No hay suficiente cantidad de productos para la orden.");
-                                    }
-                                    allProductsUpdate.Add(j);
-                                    c = true;
-                                }
-                            }
-
-                            if (c == false) 
-                            {
-                                p.stockQuantity = (p.stockQuantity - q.quantity);
-                                allProductsUpdate.Add(p);
-                            }
                             allItems.Add(itemInOrder);
 
-                        }
-                    }
+                            p.stockQuantity -= q.quantity;
+                            allProductsUpdate.Add(p);
 
-                    if (b == false) 
-                    {
-                        throw new NoFoundEntityException("No existe un producto que está en la orden en la base de datos con el Sku indicado.");
+                        }
                     }
                 }
 
                 orderAdd.date = DateTime.Now;
-                orderAdd.shippingAddress = order.ShipppingAddress;
-                orderAdd.billlingAddress = order.BillingAddress;
-                orderAdd.notes = order.Notes;
+                orderAdd.shippingAddress = order.shippingAddress;
+                orderAdd.billlingAddress = order.billingAddress;
+                orderAdd.notes = order.notes;
                 orderAdd.totalAmount = TotalAmount;
                 orderAdd.customerId = order.customerId;
                 orderAdd.orderItems = allItems;
@@ -116,16 +117,16 @@ namespace Dsw2025Tpi.Application.Services
                     await _repository.Add(o);
                 }
                 await _repository.Add(orderAdd);
-                return new OrderModel.Response(orderAdd.Id);
+                return new OrderModel.Response(orderAdd.id);
             }
         }
 
         public async Task<IEnumerable<Order>?> getAllOrders()
         {
             var orders = await _repository.GetAll<Order>();
-            if (orders.Equals(null) || !orders.Any())
+            if (orders.IsNullOrEmpty())
             {
-                throw new NoFoundEntityException("Ningun producto cargado/disponible.");
+                throw new NoFoundEntityException("Ninguna orden cargada/disponible.");
             }
             else
             {
@@ -135,7 +136,7 @@ namespace Dsw2025Tpi.Application.Services
                     List<OrderItem> allItems = new List<OrderItem>();
                     foreach (var orderItem in orderItems) 
                     {
-                        if(order.Id == orderItem.orderId) 
+                        if(order.id == orderItem.orderId) 
                         {
                             allItems.Add(orderItem);
                         }
@@ -143,6 +144,29 @@ namespace Dsw2025Tpi.Application.Services
                     order.orderItems = allItems;
                 }
                 return orders;
+            }
+        }
+
+        public async Task<Order?> getOrderById(Guid id)
+        {
+            var orderById = await _repository.GetById<Order>(id);
+            if (orderById != null)
+            {
+                var orderItems = await _repository.GetAll<OrderItem>();
+                List<OrderItem> allItems = new List<OrderItem>();
+                foreach (var orderItem in orderItems)
+                {
+                    if (orderById.id == orderItem.orderId)
+                    {
+                        allItems.Add(orderItem);
+                    }
+                }
+                orderById.orderItems = allItems; 
+                return orderById;
+            }
+            else
+            {
+                throw new NoFoundEntityException($"Ninguna orden con ID {id} cargada/disponible.");
             }
         }
 
@@ -155,7 +179,81 @@ namespace Dsw2025Tpi.Application.Services
             }
             else
             {
-                throw new NoFoundEntityException("Orden a inhabilitar no cargado/disponible.");
+                throw new NoFoundEntityException("Orden a inhabilitar no cargada/disponible.");
+            }
+        }
+
+        public async Task upgrateOrderStatus(Guid id, OrderUpdateModel status)
+        {
+            var orderById = await _repository.GetById<Order>(id);
+
+            if (orderById != null)
+            {
+                var newStatus = status.newStatus.ToUpper();
+                if(newStatus == OrderStatus.CANCELLED.ToString()) 
+                {
+                    orderById.status = OrderStatus.CANCELLED;
+                }
+                    else if(newStatus == OrderStatus.DELIVERED.ToString())
+                    {
+                        orderById.status = OrderStatus.DELIVERED;
+                    }
+                    else if (newStatus == OrderStatus.PENDING.ToString())
+                    {
+                        orderById.status = OrderStatus.PENDING;
+                    }
+                    else if (newStatus == OrderStatus.PROCESSING.ToString())
+                    {
+                        orderById.status = OrderStatus.PROCESSING;
+                    }
+                    else if (newStatus == OrderStatus.SHIPPED.ToString())
+                    {
+                        orderById.status = OrderStatus.SHIPPED;
+                    } else { throw new ArgumentException("Status ingresado no valido para una orden."); }
+
+                await _repository.Update<Order>(orderById);
+            }
+            else
+            {
+                throw new NoFoundEntityException("Orden a actualizar no cargada/disponible.");
+            }
+        }
+
+        public async Task<IEnumerable<Order>?> getOrdersByCustomersId(Guid id)
+        {
+            var orders = await _repository.GetAll<Order>();
+
+            if (orders != null || !orders.Any())
+            {
+                foreach (var order in orders)
+                {
+                    var orderItems = await _repository.GetAll<OrderItem>();
+                    List<OrderItem> allItems = new List<OrderItem>();
+                    foreach (var orderItem in orderItems)
+                    {
+                        if (order.id == orderItem.orderId)
+                        {
+                            allItems.Add(orderItem);
+                        }
+                    }
+                    order.orderItems = allItems;
+                }
+
+                List<Order> customersOrders = new List<Order>();
+                foreach (var order in orders)
+                {
+                    if(order.customerId == id) 
+                    {
+                        customersOrders.Add(order);
+                    }
+                }
+
+                if(!customersOrders.IsNullOrEmpty()) { return customersOrders; }
+                else { throw new NoFoundEntityException("Ninguna orden con el id del cliente cargada/disponible."); }
+            }
+            else
+            {
+                throw new NoFoundEntityException("Ninguna orden cargada/disponible.");
             }
         }
     }

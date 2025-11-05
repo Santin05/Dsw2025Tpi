@@ -1,0 +1,21 @@
+[
+  {
+    "id": "3a611462-37da-4693-bfe3-ccaa00ce5aba",
+    "eMail": "c",
+    "name": "nombregenerico1",
+    "phoneNumber": "3814445555"
+  },
+  {
+    "id": "3a611462-37da-4693-bfe3-ccaa00ce5abb",
+    "eMail": "b",
+    "name": "nombregenerico2",
+    "phoneNumber": "3814446669"
+  },
+  {
+    "id": "3a611462-37da-4693-bfe3-ccaa00ce5abc",
+    "eMail": "b",
+    "name": "nombregenerico3",
+    "phoneNumber": "3814447777"
+  }
+
+]

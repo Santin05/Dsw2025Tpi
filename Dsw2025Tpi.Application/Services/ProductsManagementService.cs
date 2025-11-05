@@ -1,15 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Dsw2025Tpi.Domain.Entities;
+﻿using Dsw2025Tpi.Domain.Entities;
 using Dsw2025Tpi.Domain.Interfaces;
 using Dsw2025Tpi.Application.Dtos;
-using static Dsw2025Tpi.Application.Dtos.ProductModel;
-using System.Data;
 using Dsw2025Tpi.Application.Exceptions;
-using System.ComponentModel;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Dsw2025Tpi.Application.Services
 {
@@ -25,16 +18,15 @@ namespace Dsw2025Tpi.Application.Services
         public async Task<ProductModel.Response> addProduct(ProductModel.Request product) 
         {
             if(string.IsNullOrWhiteSpace(product.Sku) || string.IsNullOrWhiteSpace(product.InternalCode) || 
-                string.IsNullOrWhiteSpace(product.Name) || string.IsNullOrWhiteSpace(product.Description) || 
-                product.StockQuantity < 0 || product.CurrentUnitPrice <= 0 ) 
+                string.IsNullOrWhiteSpace(product.Name) || string.IsNullOrWhiteSpace(product.Description)) 
             {
-                throw new ArgumentException("Valores no validos para un producto.");
+                throw new ArgumentException("Faltan datos del producto a llenar.");
             }
 
-            if(product.Sku==null || product.Name == null || product.InternalCode == null || product.Description == null || 
-               product.StockQuantity == null || product.CurrentUnitPrice == null) 
+            if(product.StockQuantity == null || product.CurrentUnitPrice == null ||
+                product.StockQuantity < 0 || product.CurrentUnitPrice <= 0)
             {
-                throw new ArgumentException("Valores no validos para un producto.");
+                throw new ArgumentException("Cantidades de Stock y/o Precio no validos para un producto.");
             }
 
             var productFound = await _repository.First<Product>(p => p.sku == product.Sku);
@@ -45,21 +37,14 @@ namespace Dsw2025Tpi.Application.Services
 
             var productAdd = new Product(product.Sku ,product.Name, product.Description, product.InternalCode, (int) product.CurrentUnitPrice, (int) product.StockQuantity);
             await _repository.Add(productAdd);
-            return new ProductModel.Response(productAdd.Id);
+            return new ProductModel.Response(productAdd.id);
         }
 
         public async Task<IEnumerable<Product>?> getAllProducts()
         {
-            IEnumerable<Product?> products;
-            try
-            {
-                products = await _repository.GetAll<Product>();
-            }
-            catch(NotImplementedException) 
-            {
-                throw new NoFoundEntityException($"{AppContext.BaseDirectory}");
-            }
-            if (products.Equals(null)) 
+            IEnumerable<Product> products = await _repository.GetAll<Product>();
+
+            if (products.IsNullOrEmpty()) 
             {
                 throw new NoFoundEntityException("Ningun producto cargado/disponible.");
             }
@@ -78,7 +63,7 @@ namespace Dsw2025Tpi.Application.Services
             }
             else 
             {
-                throw new NoFoundEntityException("Ningun producto cargado/disponible.");
+                throw new NoFoundEntityException($"Ningun producto con ID {id} cargado/disponible.");
             }
         }
 
@@ -88,69 +73,78 @@ namespace Dsw2025Tpi.Application.Services
 
             if (productById != null)
             {
-                if (await _repository.First<Product>(p => p.sku == product.Sku && p.Id != id) == null)
+                if (await _repository.First<Product>(p => p.sku == product.Sku && p.id != id) == null)
                 {
                     //Verificacion de cada campo de la request
-                    if (!String.IsNullOrEmpty(product.Sku))
+                    if (product.Sku != null) 
                     {
-                        if (string.IsNullOrWhiteSpace(product.Sku))
+                        if (!(string.IsNullOrWhiteSpace(product.Sku)))
                         {
-                            throw new ArgumentException("Valores no validos para un producto.");
+                            productById.sku = product.Sku;
                         }
-                        productById.sku = product.Sku;
+                        else 
+                        {
+                            throw new ArgumentException("Sku del producto inexistente.");
+                        }
                     }
 
-                    if (!String.IsNullOrEmpty(product.Name))
+                    if (product.Name != null)
                     {
-                        if (string.IsNullOrWhiteSpace(product.Name))
+                        if (!(string.IsNullOrWhiteSpace(product.Name)))
                         {
-                            throw new ArgumentException("Valores no validos para un producto.");
+                            productById.name = product.Name;
                         }
-                        productById.name = product.Name;
+                        else
+                        {
+                            throw new ArgumentException("Sku del producto inexistente.");
+                        }
                     }
 
-                    if (!String.IsNullOrEmpty(product.InternalCode))
+                    if (product.InternalCode != null)
                     {
-                        if (string.IsNullOrWhiteSpace(product.InternalCode))
+                        if (!(string.IsNullOrWhiteSpace(product.InternalCode)))
                         {
-                            throw new ArgumentException("Valores no validos para un producto.");
+                            productById.internalCode = product.InternalCode;
                         }
-                        productById.internalCode = product.InternalCode;
+                        else
+                        {
+                            throw new ArgumentException("Sku del producto inexistente.");
+                        }
                     }
 
-                    if (!String.IsNullOrEmpty(product.Description))
+                    if (product.Description != null)
                     {
-                        if (string.IsNullOrWhiteSpace(product.Description))
+                        if (!(string.IsNullOrWhiteSpace(product.Description)))
                         {
-                            throw new ArgumentException("Valores no validos para un producto.");
+                            productById.description = product.Description;
                         }
-                        productById.description = product.Description;
+                        else
+                        {
+                            throw new ArgumentException("Sku del producto inexistente.");
+                        }
                     }
 
                     if (product.StockQuantity != null)
                     {
                         if (!(product.StockQuantity < 0))
                         {
-                            if (product.StockQuantity != 0) 
-                            {
-                                productById.stockQuantity = (int)product.StockQuantity;
-                            }
+                            productById.stockQuantity = (int)product.StockQuantity;
                         }
                         else
                         {
-                            throw new ArgumentException("Valores no validos para un producto.");
+                            throw new ArgumentException("Cantidad de stock menor a cero.");
                         }
                     }
 
                     if (product.CurrentUnitPrice != null)
                     {
-                        if (!(product.CurrentUnitPrice < 0)) 
+                        if (!(product.CurrentUnitPrice <= 0)) 
                         {
-                            productById.currentUnitPrice = (int)product.CurrentUnitPrice;
+                            productById.currentUnitPrice = (decimal)product.CurrentUnitPrice;
                         }
                         else
                         {
-                            throw new ArgumentException("Valores no validos para un producto.");
+                            throw new ArgumentException("Valor del precio unitario menor/igual a cero.");
                         }
                     }
 
@@ -158,51 +152,13 @@ namespace Dsw2025Tpi.Application.Services
                 }
                 else
                 {
-                    throw new DuplicateEntityException($"Producto con el mismo Sku {product.Sku} encontrado en la base de datos.");
+                    throw new DuplicateEntityException($"Producto con el Sku a modificar ( {product.Sku} ) encontrado en otro producto existente.");
                 }
             }
             else
             {
                 throw new NoFoundEntityException("Producto a actualizar no cargado/disponible.");
             }
-
-
-
-
-
-            /*
-            var productById = await _repository.GetById<Product>(id);
-            if (productById != null)
-            {
-                if(await _repository.First<Product>(p => p.sku == product.Sku && p.Id != id) == null) 
-                {
-                    if (string.IsNullOrWhiteSpace(product.Sku) || string.IsNullOrWhiteSpace(product.InternalCode) ||
-                        string.IsNullOrWhiteSpace(product.Name) || string.IsNullOrWhiteSpace(product.Description) ||
-                        product.StockQuantity < 0 || product.CurrentUnitPrice <= 0)
-                    {
-                        throw new ArgumentException("Valores no validos para un producto.");
-                    }
-                    else 
-                    {
-                        productById.sku = product.Sku;
-                        productById.name = product.Name;
-                        productById.description = product.Description;
-                        productById.internalCode = product.InternalCode;
-                        productById.currentUnitPrice = product.CurrentUnitPrice;
-                        productById.stockQuantity = product.StockQuantity;
-                        await _repository.Update(productById);
-                     }
-                }
-                else 
-                {
-                    throw new DuplicateEntityException($"Producto con el mismo Sku {product.Sku} encontrado en la base de datos.");
-                }
-            }
-            else
-            {
-                throw new NoFoundEntityException("Producto a actualizar no cargado/disponible.");
-            }
-            */
         }
 
         public async Task deleteProduct(Guid id) 

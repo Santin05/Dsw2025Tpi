@@ -1,8 +1,8 @@
-﻿using Dsw2025Tpi.Application.Dtos;
-using Dsw2025Tpi.Application.Services;
+﻿using Dsw2025Tpi.Application.Services;
 using Microsoft.AspNetCore.Mvc;
 using Dsw2025Tpi.Application.Models;
 using Dsw2025Tpi.Application.Exceptions;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Dsw2025Tpi.Api.Controllers
 {
@@ -19,13 +19,22 @@ namespace Dsw2025Tpi.Api.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = "Admin")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
-        public async Task<IActionResult> GetAllOrders()
+        public async Task<IActionResult> GetAllOrders([FromQuery] Guid? customerId)
         {
             try
             {
-                var orders = await _ordersManagementService.getAllOrders();
-                return Ok(orders);
+                if (customerId.HasValue)
+                {
+                    var order = await _ordersManagementService.getOrdersByCustomersId(customerId.Value);
+                    return Ok(order);
+                }
+                else 
+                {
+                    var orders = await _ordersManagementService.getAllOrders();
+                    return Ok(orders);
+                }
             }
             catch (NoFoundEntityException)
             {
@@ -33,7 +42,24 @@ namespace Dsw2025Tpi.Api.Controllers
             }
         }
 
+        [HttpGet("{id}")]
+        [Authorize(Roles = "Admin")]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetOrderById(Guid id)
+        {
+            try
+            {
+                var order = await _ordersManagementService.getOrderById(id);
+                return Ok(order);
+            }
+            catch (NoFoundEntityException ex)
+            {
+                return NotFound(ex.Message);
+            }
+        }
+
         [HttpPost]
+        [Authorize(Roles = "Customer")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> AddOrder([FromBody] OrderModel.Request data) 
@@ -45,15 +71,20 @@ namespace Dsw2025Tpi.Api.Controllers
             }
             catch (DuplicateEntityException)
             {
-                return BadRequest("Orden duplicada.");
+                return Conflict("Orden duplicada.");
             }
-            catch (NoFoundEntityException) 
+            catch (NoFoundEntityException ex) 
             {
-                return BadRequest("No existe un producto que está en la orden en la base de datos con el Sku indicado.");
+                return BadRequest(ex.Message);
+            }
+            catch(Exception e) 
+            {
+                return Problem(e.Message);
             }
         }
 
         [HttpPatch]
+        [Authorize(Roles = "Admin")]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeleteOrder(Guid id)
         {
@@ -67,5 +98,48 @@ namespace Dsw2025Tpi.Api.Controllers
                 return NotFound($"No hay orden con ID {id}");
             }
         }
+
+        [HttpPut("{id}/status")]
+        [Authorize(Roles = "Admin")]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> UpdateOrderStatus(Guid id, [FromBody] OrderUpdateModel status)
+        {
+            try
+            {
+                await _ordersManagementService.upgrateOrderStatus(id, status);
+                return Ok($"Status de orden modificado a {status.newStatus.ToUpper()} con exito.");
+            }
+            catch (DuplicateEntityException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (NoFoundEntityException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        /*
+        [HttpGet("Customers {id}")]
+        [Authorize(Roles = "Customer,Admin")]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetOrderByCustomersId(Guid id)
+        {
+            try
+            {
+                var order = await _ordersManagementService.getOrdersByCustomersId(id);
+                return Ok(order);
+            }
+            catch (NoFoundEntityException ex)
+            {
+                return NotFound(ex.Message);
+            }
+        }
+        */
     }
 }
