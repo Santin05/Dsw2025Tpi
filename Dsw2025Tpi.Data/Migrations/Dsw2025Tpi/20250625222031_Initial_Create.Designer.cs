@@ -9,11 +9,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace Dsw2025Tpi.Api.Migrations
+namespace Dsw2025Tpi.Api.Migrations.Dsw2025Tpi
 {
     [DbContext(typeof(Dsw2025TpiContext))]
-    [Migration("20250626140200_OrderUpdate")]
-    partial class OrderUpdate
+    [Migration("20250625222031_Initial_Create")]
+    partial class Initial_Create
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -24,47 +24,6 @@ namespace Dsw2025Tpi.Api.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
-
-            modelBuilder.Entity("Dsw2025Tpi.Domain.Entities.Order", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("id");
-
-                    b.Property<string>("billlingAddress")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("date")
-                        .HasMaxLength(30)
-                        .HasColumnType("datetime2");
-
-                    b.Property<byte[]>("itemsOrder")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("varbinary(50)");
-
-                    b.Property<string>("notes")
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
-                    b.Property<string>("shippingAddress")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
-                    b.Property<int>("status")
-                        .HasMaxLength(10)
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("totalAmount")
-                        .HasMaxLength(30)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Orders", (string)null);
-                });
 
             modelBuilder.Entity("Dsw2025Tpi.Domain.Entities.Product", b =>
                 {

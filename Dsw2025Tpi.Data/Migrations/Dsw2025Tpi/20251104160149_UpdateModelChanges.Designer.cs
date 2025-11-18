@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace Dsw2025Tpi.Api.Migrations
+namespace Dsw2025Tpi.Api.Migrations.Dsw2025Tpi
 {
     [DbContext(typeof(Dsw2025TpiContext))]
     [Migration("20251104160149_UpdateModelChanges")]

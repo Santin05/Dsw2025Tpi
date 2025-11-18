@@ -9,11 +9,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace Dsw2025Tpi.Api.Migrations
+namespace Dsw2025Tpi.Api.Migrations.Dsw2025Tpi
 {
     [DbContext(typeof(Dsw2025TpiContext))]
-    [Migration("20250627164127_CustomerUpdate")]
-    partial class CustomerUpdate
+    [Migration("20250626172529_OrderUpdateFix2")]
+    partial class OrderUpdateFix2
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -25,30 +25,6 @@ namespace Dsw2025Tpi.Api.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("Dsw2025Tpi.Domain.Entities.Customer", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("id");
-
-                    b.Property<string>("eMail")
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
-                    b.Property<string>("name")
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
-                    b.Property<string>("phoneNumber")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Customers", (string)null);
-                });
-
             modelBuilder.Entity("Dsw2025Tpi.Domain.Entities.Order", b =>
                 {
                     b.Property<Guid>("Id")
@@ -59,9 +35,6 @@ namespace Dsw2025Tpi.Api.Migrations
                     b.Property<string>("billlingAddress")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid>("customerId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<DateTime>("date")
                         .HasMaxLength(30)
                         .HasColumnType("datetime2");
@@ -71,6 +44,7 @@ namespace Dsw2025Tpi.Api.Migrations
                         .HasColumnType("nvarchar(30)");
 
                     b.Property<string>("shippingAddress")
+                        .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 

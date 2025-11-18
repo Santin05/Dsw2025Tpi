@@ -13,7 +13,7 @@ public class EfRepository: IRepository
     public EfRepository(Dsw2025TpiContext context) 
     {
         _context = context;
-        _context.LoadData(_context);
+        //_context.LoadData(context);
     }
 
     

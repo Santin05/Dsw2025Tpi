@@ -1,9 +1,8 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace Dsw2025Tpi.Api.Migrations
+namespace Dsw2025Tpi.Api.Migrations.Dsw2025Tpi
 {
     /// <inheritdoc />
     public partial class Initial_Create : Migration

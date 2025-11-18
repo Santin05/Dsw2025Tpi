@@ -2,26 +2,20 @@
 using Dsw2025Tpi.Domain.Entities;
 using System.Text.Json;
 
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
-using Microsoft.AspNetCore.Identity;
-
 namespace Dsw2025Tpi.Data.Source;
 
-public class Dsw2025TpiContext : IdentityDbContext<IdentityUser>
+public class Dsw2025TpiContext : DbContext
 {
     public Dsw2025TpiContext(DbContextOptions<Dsw2025TpiContext> options) : base(options)
     {
     }
 
+    /*
     public void LoadData(Dsw2025TpiContext context)
     {
         context.Database.ExecuteSqlRaw("TRUNCATE TABLE Customers");
 
-<<<<<<< HEAD
-        var fileName = @"C:\Users\Santino\Desktop\TpiCarpeta\Dsw2025Tpi\Dsw2025Tpi.Data\Sources\customers.json";
-=======
-        var fileName = @"C:\Users\Santino\Desktop\PRIMERA PRESENTACIÓN (errores coregidos)\Dsw2025Tpi\Dsw2025Tpi.Data\Sources\customers.json";
->>>>>>> 8473edca8a8869e61a9cdf3446a7137c3faf062e
+        var fileName = @"C:\Users\Santino\Desktop\PRIMERA PRESENTACIÓN (Implementacion de seguridad)\Dsw2025Tpi\Dsw2025Tpi.Data\Sources\customers.json";
         var read = File.ReadAllText(fileName);
         var data = JsonSerializer.Deserialize<List<Customer>>(read);
         if (data != null)
@@ -33,6 +27,7 @@ public class Dsw2025TpiContext : IdentityDbContext<IdentityUser>
         }
         context.SaveChanges();
     }
+    */
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

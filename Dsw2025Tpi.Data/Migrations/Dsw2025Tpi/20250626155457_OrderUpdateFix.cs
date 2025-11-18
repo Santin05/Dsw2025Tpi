@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace Dsw2025Tpi.Api.Migrations
+namespace Dsw2025Tpi.Api.Migrations.Dsw2025Tpi
 {
     /// <inheritdoc />
     public partial class OrderUpdateFix : Migration

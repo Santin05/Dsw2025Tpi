@@ -9,11 +9,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace Dsw2025Tpi.Api.Migrations
+namespace Dsw2025Tpi.Api.Migrations.Dsw2025Tpi
 {
     [DbContext(typeof(Dsw2025TpiContext))]
-    [Migration("20250626172529_OrderUpdateFix2")]
-    partial class OrderUpdateFix2
+    [Migration("20250626181341_OrderUpdateFix3")]
+    partial class OrderUpdateFix3
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -44,7 +44,6 @@ namespace Dsw2025Tpi.Api.Migrations
                         .HasColumnType("nvarchar(30)");
 
                     b.Property<string>("shippingAddress")
-                        .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
