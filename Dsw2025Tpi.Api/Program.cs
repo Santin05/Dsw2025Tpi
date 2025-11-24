@@ -2,6 +2,7 @@ using System.Text;
 using Dsw2025Tpi.Application.Services;
 using Dsw2025Tpi.Data.Repositories;
 using Dsw2025Tpi.Data.Source;
+using Dsw2025Tpi.Data.Sources;
 using Dsw2025Tpi.Domain.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -28,12 +29,17 @@ public class Program
         {
             options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"), b => b.MigrationsAssembly("Dsw2025Tpi.Data"));
         });
+        builder.Services.AddDbContext<AuthenticateContext>(options =>
+        {
+            options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"), b => b.MigrationsAssembly("Dsw2025Tpi.Data"));
+        });
         builder.Services.AddScoped<IRepository, EfRepository>();
+        builder.Services.AddScoped<CustomersManagementService>();
         builder.Services.AddScoped<ProductsManagementService>();
         builder.Services.AddScoped<OrdersManagementService>();
         builder.Services.AddScoped<JwtTokenService>();
 
-        builder.Services.AddIdentity<IdentityUser, IdentityRole>().AddEntityFrameworkStores<Dsw2025TpiContext>().AddDefaultTokenProviders().AddRoles<IdentityRole>();
+        builder.Services.AddIdentity<IdentityUser, IdentityRole>().AddEntityFrameworkStores<AuthenticateContext>().AddDefaultTokenProviders().AddRoles<IdentityRole>();
 
         builder.Services.AddSwaggerGen(c =>
         {
@@ -47,7 +53,7 @@ public class Program
                 Scheme = "Bearer",
                 BearerFormat = "JWT",
                 In = ParameterLocation.Header,
-                Description = "Ingresa tu token JWT."
+                Description = "Ingresa tu JWT."
             });
 
             // 2. Aplicar el requisito de seguridad globalmente o a una operación
@@ -89,6 +95,21 @@ public class Program
 
         builder.Services.AddAuthorization();
 
+        var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
+
+        builder.Services.AddCors(options =>
+        {
+            options.AddPolicy(name: MyAllowSpecificOrigins,
+                policy =>
+                {
+                    policy
+                        .WithOrigins("http://localhost:5173")
+                        .AllowAnyHeader()
+                        .AllowAnyMethod()
+                        .AllowCredentials();
+                });
+        });
+
         var app = builder.Build();
 
         using (var scope = app.Services.CreateScope())
@@ -115,6 +136,8 @@ public class Program
             app.UseSwagger();
             app.UseSwaggerUI();
         }
+
+        app.UseCors(MyAllowSpecificOrigins);
 
         app.UseHttpsRedirection();
 

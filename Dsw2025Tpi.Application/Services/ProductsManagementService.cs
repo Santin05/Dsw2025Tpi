@@ -3,6 +3,7 @@ using Dsw2025Tpi.Domain.Interfaces;
 using Dsw2025Tpi.Application.Dtos;
 using Dsw2025Tpi.Application.Exceptions;
 using Microsoft.IdentityModel.Tokens;
+using Dsw2025Tpi.Application.Models;
 
 namespace Dsw2025Tpi.Application.Services
 {
@@ -51,6 +52,74 @@ namespace Dsw2025Tpi.Application.Services
             else 
             {
                 return products;
+            }
+        }
+
+        public async Task<PageModel<Product>?> getAllFilteredProducts(string? searchName, string? status, int pageNumber = 1, int pageSize = 20)
+        {
+            var products = await _repository.GetAll<Product>();
+            if (products.IsNullOrEmpty()) { throw new NoFoundEntityException("Ninguna orden cargada/disponible."); }
+            else
+            {
+                var filteredProducts = new List<Product>();
+                if (pageNumber <= 0 || pageSize <= 0) { throw new ArgumentException("Ingrese un tamaño de página o número de página correcto (Mayor a cero y entero)."); }
+                if (!string.IsNullOrWhiteSpace(status))
+                {
+                    status = status.ToLower();
+                    switch (status)
+                    {
+                        case "enable":
+                            foreach (var product in products)
+                            {
+                                if (product.isActive) { filteredProducts.Add(product); }
+                            }
+                            if (filteredProducts.IsNullOrEmpty()) { throw new NoFoundEntityException("Ninguno producto cargada/disponible con el status ENABLE(Habilitado)."); }
+                            break;
+                        case "disable":
+                            foreach (var product in products)
+                            {
+                                if (!product.isActive) { filteredProducts.Add(product); }
+                            }
+                            if (filteredProducts.IsNullOrEmpty()) { throw new NoFoundEntityException("Ninguno producto cargada/disponible con el status ENABLE(Habilitado)."); }
+                            break;
+                        default:
+                            throw new ArgumentException("Ingrese un status de producto válido (ENABLE, DISABLE).");
+                    }
+                }
+                if (!string.IsNullOrWhiteSpace(searchName))
+                {
+                    if (filteredProducts.IsNullOrEmpty())
+                    {
+                        foreach (var product in products)
+                        {
+                            if (product.name.Contains(searchName, StringComparison.OrdinalIgnoreCase)) { filteredProducts.Add(product); }
+                        }
+                        if (filteredProducts.IsNullOrEmpty()) { throw new NoFoundEntityException($"Ninguno producto cargada/disponible que contenga en su nombre {searchName}."); }
+                    }
+                    else
+                    {
+                        var filteredProductsByName = new List<Product>();
+                        foreach (var product in filteredProducts) 
+                        {
+                            if (product.name.Contains(searchName, StringComparison.OrdinalIgnoreCase)) { filteredProductsByName.Add(product); }
+                        }
+                        if (filteredProductsByName.IsNullOrEmpty()) { throw new NoFoundEntityException($"Ninguno producto cargada/disponible que contenga en su nombre {searchName}."); }
+                        else { filteredProducts = filteredProductsByName; filteredProductsByName = null; }
+                    }
+                }
+                if(filteredProducts.IsNullOrEmpty()) { filteredProducts = products.ToList(); };
+                int totalPages = (int)Math.Ceiling(filteredProducts.Count() / (double)pageSize);
+                if (filteredProducts.Count() > pageSize)
+                {
+                    filteredProducts.RemoveRange((pageSize), (filteredProducts.Count() - pageSize));
+                }
+                return new PageModel<Product>
+                {
+                    elementsPage = filteredProducts,
+                    pageNumber = pageNumber.ToString(),
+                    pageSize = pageSize.ToString(),
+                    totalPages = totalPages.ToString()
+                };
             }
         }
 

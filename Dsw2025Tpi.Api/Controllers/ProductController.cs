@@ -3,12 +3,12 @@ using Dsw2025Tpi.Application.Services;
 using Dsw2025Tpi.Application.Dtos;
 using Dsw2025Tpi.Application.Exceptions;
 using Microsoft.AspNetCore.Authorization;
+using Dsw2025Tpi.Application.Models;
 
 namespace Dsw2025Tpi.Api.Controllers
 {
     [ApiController]
     [Route("api/products")]
-    [Authorize(Roles = "Admin")]
     public class ProductController : ControllerBase
     {
         private readonly ProductsManagementService _productsManagementService;
@@ -19,6 +19,7 @@ namespace Dsw2025Tpi.Api.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = "Admin, User")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetAllProducts()
@@ -39,7 +40,33 @@ namespace Dsw2025Tpi.Api.Controllers
 
         }
 
+        [HttpGet("filtered")]
+        [Authorize(Roles = "Admin, User")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> GetAllFilteredProducts(
+            string? searchName,
+            string? status,
+            int pageNumber = 1,
+            int pageSize = 20)
+        {
+            try
+            {
+                var filteredProducts = await _productsManagementService.getAllFilteredProducts(searchName, status, pageNumber, pageSize);
+                return Ok(filteredProducts);
+            }
+            catch (NoFoundEntityException)
+            {
+                return NoContent();
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
         [HttpGet("{id}")]
+        [Authorize(Roles = "Admin, User")]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetProductById(Guid id) 
         {
@@ -55,6 +82,7 @@ namespace Dsw2025Tpi.Api.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> AddProduct([FromBody]ProductModel.Request data) 
@@ -75,6 +103,7 @@ namespace Dsw2025Tpi.Api.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> UpdateProduct(Guid id, [FromBody] ProductModel.Request data) 
@@ -99,6 +128,7 @@ namespace Dsw2025Tpi.Api.Controllers
         }
 
         [HttpPatch]
+        [Authorize(Roles = "Admin")]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeleteProduct(Guid id) 
         {
@@ -114,6 +144,7 @@ namespace Dsw2025Tpi.Api.Controllers
         }
 
         [HttpPatch("{id}")]
+        [Authorize(Roles = "Admin")]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DisableProduct(Guid id)
         {

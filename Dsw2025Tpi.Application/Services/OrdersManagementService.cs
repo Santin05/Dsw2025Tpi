@@ -147,6 +147,83 @@ namespace Dsw2025Tpi.Application.Services
             }
         }
 
+        public async Task<PageModel<Order>?> getAllFilteredOrders(string? status, int pageNumber = 1, int pageSize = 20)
+        {
+            var orders = await _repository.GetAll<Order>();
+            if (orders.IsNullOrEmpty()) { throw new NoFoundEntityException("Ninguna orden cargada/disponible."); }
+            else
+            {
+                var filteredOrders = new List<Order>();
+                if(pageNumber <= 0 || pageSize <= 0) { throw new ArgumentException("Ingrese un tamaño de página o número de página correcto (Mayor a cero y entero)."); }
+                if (!string.IsNullOrWhiteSpace(status)) 
+                {
+                    switch (status)
+                    {
+                        case "PENDING":
+                            foreach (var order in orders) 
+                            {
+                                if (order.status.ToString() == "PENDING") { filteredOrders.Add(order); }
+                            }
+                            if(filteredOrders.IsNullOrEmpty()) { throw new NoFoundEntityException("Ninguna orden cargada/disponible con el status PENDING."); }
+                            break;
+                        case "PROCESSING":
+                            foreach (var order in orders)
+                            {
+                                if (order.status.ToString() == "PROCESSING") { filteredOrders.Add(order); }
+                            }
+                            if (filteredOrders.IsNullOrEmpty()) { throw new NoFoundEntityException("Ninguna orden cargada/disponible con el status PROCESSING."); }
+                            break;
+                        case "SHIPPED":
+                            foreach (var order in orders)
+                            {
+                                if (order.status.ToString() == "SHIPPED") { filteredOrders.Add(order); }
+                            }
+                            if (filteredOrders.IsNullOrEmpty()) { throw new NoFoundEntityException("Ninguna orden cargada/disponible con el status SHIPPED."); }
+                            break;
+                        case "DELIVERED":
+                            foreach (var order in orders)
+                            {
+                                if (order.status.ToString() == "DELIVERED") { filteredOrders.Add(order); }
+                            }
+                            if (filteredOrders.IsNullOrEmpty()) { throw new NoFoundEntityException("Ninguna orden cargada/disponible con el status DELIVERED."); }
+                            break;
+                        case "CANCELLED":
+                            foreach (var order in orders)
+                            {
+                                if (order.status.ToString() == "CANCELLED") { filteredOrders.Add(order); }
+                            }
+                            if (filteredOrders.IsNullOrEmpty()) { throw new NoFoundEntityException("Ninguna orden cargada/disponible con el status CANCELLED."); }
+                            break;
+                        default:
+                            throw new ArgumentException("Ingrese un status de orden válido (PENDING, PROCESSING, SHIPPED, DELIVERED, CANCELLED).");
+                    }
+                } else { filteredOrders = orders.ToList(); }
+                   filteredOrders.OrderByDescending(order => order.date);
+                int totalPages = (int)Math.Ceiling(filteredOrders.Count() / (double)pageSize);
+                if (filteredOrders.Count() > pageSize)
+                {
+                    filteredOrders.RemoveRange((pageSize), (filteredOrders.Count() - pageSize));
+                }
+                foreach (var order in filteredOrders)
+                {
+                    var orderItems = await _repository.GetAll<OrderItem>();
+                    List<OrderItem> allItems = new List<OrderItem>();
+                    foreach (var orderItem in orderItems)
+                    {
+                        if (order.id == orderItem.orderId) { allItems.Add(orderItem); }
+                    }
+                    order.orderItems = allItems;
+                }
+                return new PageModel<Order>
+                {
+                    elementsPage = filteredOrders,
+                    pageNumber = pageNumber.ToString(),
+                    pageSize = pageSize.ToString(),
+                    totalPages = totalPages.ToString()
+                };
+            }
+        }
+
         public async Task<Order?> getOrderById(Guid id)
         {
             var orderById = await _repository.GetById<Order>(id);

@@ -1,4 +1,5 @@
-﻿using Dsw2025Tpi.Application.Models;
+﻿using Dsw2025Tpi.Application.Exceptions;
+using Dsw2025Tpi.Application.Models;
 using Dsw2025Tpi.Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -14,13 +15,16 @@ namespace Dsw2025Tpi.Api.Controllers
         private readonly UserManager<IdentityUser> userManager;
         private readonly SignInManager<IdentityUser> signInManager;
         private readonly JwtTokenService jwtTokenService;
+        private readonly CustomersManagementService customersManagementService;
         public AuthenticateController(UserManager<IdentityUser> userManager, 
             SignInManager<IdentityUser> signInManager, 
-            JwtTokenService jwtTokenService)
+            JwtTokenService jwtTokenService,
+            CustomersManagementService customersManagementService)
         {
             this.userManager = userManager;
             this.signInManager = signInManager;
             this.jwtTokenService = jwtTokenService;
+            this.customersManagementService = customersManagementService;
         }
 
         [HttpPost("login")]
@@ -44,16 +48,34 @@ namespace Dsw2025Tpi.Api.Controllers
         {
             if (request.Role != "Admin" && request.Role != "User") { return BadRequest("Role ingresado invalido (User o Admin)."); }
 
+            if (request.Role == "User")
+            {
+                try
+                {
+                    await customersManagementService.addCustomer(request);
+                }
+                catch (ArgumentException ex)
+                {
+                    return BadRequest(ex.Message);
+                }
+                catch (DuplicateEntityException ex)
+                {
+                    return BadRequest(ex.Message);
+                }
+            }
+
             var user = new IdentityUser { UserName = request.Username, Email = request.Email };
             var result = await userManager.CreateAsync(user, request.Password);
 
-            if (!result.Succeeded) { return BadRequest(result.Errors); }
+            if (!result.Succeeded) { await customersManagementService.deleteCustomer(request.Username); return BadRequest(result.Errors); }
 
             var role = request.Role;
             var roleResult = await userManager.AddToRoleAsync(user, role);
 
-            if (!roleResult.Succeeded){
-                return BadRequest(roleResult.Errors); 
+            if (!roleResult.Succeeded)
+            {
+                await customersManagementService.deleteCustomer(request.Username);
+                return BadRequest(roleResult.Errors);
             }
 
             return Ok("Usuario registrado exitosamente.");
@@ -62,7 +84,6 @@ namespace Dsw2025Tpi.Api.Controllers
         [HttpPatch]
         public async Task<IActionResult> DeleteUser([FromBody] LoginModel request)
         {
-            // 1. Buscar el usuario por ID
             var user = await userManager.FindByNameAsync(request.Username);
 
             if (user == null)
@@ -74,11 +95,13 @@ namespace Dsw2025Tpi.Api.Controllers
 
             if (result.Succeeded)
             {
+                var role = await userManager.GetRolesAsync(user);
+                if (role.FirstOrDefault() == "User") { await customersManagementService.deleteCustomer(request.Username); }
                 return Ok($"Usuario '{user.UserName}' eliminado exitosamente.");
             }
             else
             {
-  
+
                 var errors = result.Errors.Select(e => e.Description);
                 return BadRequest(new { Errors = errors, Message = "Fallo al eliminar el usuario." });
             }

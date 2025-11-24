@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Dsw2025Tpi.Application.Models;
 using Dsw2025Tpi.Application.Exceptions;
 using Microsoft.AspNetCore.Authorization;
+using Dsw2025Tpi.Domain.Entities;
 
 namespace Dsw2025Tpi.Api.Controllers
 {
@@ -27,8 +28,8 @@ namespace Dsw2025Tpi.Api.Controllers
             {
                 if (customerId.HasValue)
                 {
-                    var order = await _ordersManagementService.getOrdersByCustomersId(customerId.Value);
-                    return Ok(order);
+                    var orders = await _ordersManagementService.getOrdersByCustomersId(customerId.Value);
+                    return Ok(orders);
                 }
                 else 
                 {
@@ -39,6 +40,30 @@ namespace Dsw2025Tpi.Api.Controllers
             catch (NoFoundEntityException)
             {
                 return NoContent();
+            }
+        }
+
+        [HttpGet("filtered")]
+        [Authorize(Roles = "Admin")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> GetAllFilteredOrders(
+            string? status,
+            int pageNumber = 1,
+            int pageSize = 20)
+        {
+            try
+            {
+                var filteredOrders = await _ordersManagementService.getAllFilteredOrders(status, pageNumber, pageSize);
+                return Ok(filteredOrders);
+            }
+            catch (NoFoundEntityException)
+            {
+                return NoContent();
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
             }
         }
 
@@ -59,7 +84,7 @@ namespace Dsw2025Tpi.Api.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Customer")]
+        [Authorize(Roles = "User")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> AddOrder([FromBody] OrderModel.Request data) 
