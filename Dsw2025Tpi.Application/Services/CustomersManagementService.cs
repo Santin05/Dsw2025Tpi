@@ -35,17 +35,27 @@ public class CustomersManagementService
 
     public async Task deleteCustomer(string name)
     {
-        var customers = await _repository.GetAll<Customer>();
+        var customers = await _repository.First<Customer>((c) => c.name == name);
         if (customers != null)
         {
-            foreach (var c in customers) 
-            {
-                if(name == c.name) { await _repository.Delete(c); break; }
-            }
+             await _repository.Delete(customers);
         }
         else
         {
-            throw new NoFoundEntityException($"Ninguna cliente cargado/disponible.");
+            throw new NoFoundEntityException($"Ningun cliente cargado/disponible.");
+        }
+    }
+
+    public async Task<Customer?> getCustomerByName(string customerName)
+    {
+        var customerByName = await _repository.First<Customer>((c) => c.name == customerName);
+        if (customerByName != null)
+        {
+            return customerByName;
+        }
+        else
+        {
+            throw new NoFoundEntityException($"Ninguna orden con el nombre {customerName} cargada/disponible.");
         }
     }
 }

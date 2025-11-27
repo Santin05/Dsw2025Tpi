@@ -48,13 +48,14 @@ namespace Dsw2025Tpi.Api.Controllers
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> GetAllFilteredOrders(
+            string? searchName,
             string? status,
             int pageNumber = 1,
             int pageSize = 20)
         {
             try
             {
-                var filteredOrders = await _ordersManagementService.getAllFilteredOrders(status, pageNumber, pageSize);
+                var filteredOrders = await _ordersManagementService.getAllFilteredOrders(searchName, status, pageNumber, pageSize);
                 return Ok(filteredOrders);
             }
             catch (NoFoundEntityException)
@@ -132,7 +133,7 @@ namespace Dsw2025Tpi.Api.Controllers
         {
             try
             {
-                await _ordersManagementService.upgrateOrderStatus(id, status);
+                await _ordersManagementService.upgrateOrderStatus(id, status.newStatus);
                 return Ok($"Status de orden modificado a {status.newStatus.ToUpper()} con exito.");
             }
             catch (DuplicateEntityException ex)

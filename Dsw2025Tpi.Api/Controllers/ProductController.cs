@@ -19,7 +19,7 @@ namespace Dsw2025Tpi.Api.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = "Admin, User")]
+        [AllowAnonymous]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetAllProducts()
@@ -41,7 +41,7 @@ namespace Dsw2025Tpi.Api.Controllers
         }
 
         [HttpGet("filtered")]
-        [Authorize(Roles = "Admin, User")]
+        [AllowAnonymous]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> GetAllFilteredProducts(
@@ -143,15 +143,25 @@ namespace Dsw2025Tpi.Api.Controllers
             }
         }
 
-        [HttpPatch("{id}")]
+        [HttpPut("{id}/status")]
         [Authorize(Roles = "Admin")]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
         public async Task<IActionResult> DisableProduct(Guid id)
         {
             try
             {
-                await _productsManagementService.disableProduct(id);
-                return NoContent();
+                var product = await _productsManagementService.getProductById(id);
+                if (product.isActive == true) 
+                {
+                    await _productsManagementService.disableProduct(id);
+                    return NoContent();
+                }
+                else 
+                {
+                    await _productsManagementService.enableProduct(id);
+                    return NoContent();
+                }
             }
             catch (NoFoundEntityException ex)
             {

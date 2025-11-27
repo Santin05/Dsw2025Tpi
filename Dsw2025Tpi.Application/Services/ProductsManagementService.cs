@@ -19,7 +19,8 @@ namespace Dsw2025Tpi.Application.Services
         public async Task<ProductModel.Response> addProduct(ProductModel.Request product) 
         {
             if(string.IsNullOrWhiteSpace(product.Sku) || string.IsNullOrWhiteSpace(product.InternalCode) || 
-                string.IsNullOrWhiteSpace(product.Name) || string.IsNullOrWhiteSpace(product.Description)) 
+                string.IsNullOrWhiteSpace(product.Name))
+            //también podemos poner string.IsNullOrWhiteSpace(product.Description)
             {
                 throw new ArgumentException("Faltan datos del producto a llenar.");
             }
@@ -92,7 +93,7 @@ namespace Dsw2025Tpi.Application.Services
                     {
                         foreach (var product in products)
                         {
-                            if (product.name.Contains(searchName, StringComparison.OrdinalIgnoreCase)) { filteredProducts.Add(product); }
+                            if (product.name.Contains(searchName, StringComparison.OrdinalIgnoreCase) || product.sku.Contains(searchName)) { filteredProducts.Add(product); }
                         }
                         if (filteredProducts.IsNullOrEmpty()) { throw new NoFoundEntityException($"Ninguno producto cargada/disponible que contenga en su nombre {searchName}."); }
                     }
@@ -101,7 +102,7 @@ namespace Dsw2025Tpi.Application.Services
                         var filteredProductsByName = new List<Product>();
                         foreach (var product in filteredProducts) 
                         {
-                            if (product.name.Contains(searchName, StringComparison.OrdinalIgnoreCase)) { filteredProductsByName.Add(product); }
+                            if (product.name.Contains(searchName, StringComparison.OrdinalIgnoreCase) || product.sku.Contains(searchName)) { filteredProductsByName.Add(product); }
                         }
                         if (filteredProductsByName.IsNullOrEmpty()) { throw new NoFoundEntityException($"Ninguno producto cargada/disponible que contenga en su nombre {searchName}."); }
                         else { filteredProducts = filteredProductsByName; filteredProductsByName = null; }
@@ -254,6 +255,20 @@ namespace Dsw2025Tpi.Application.Services
             else
             {
                 throw new NoFoundEntityException("Producto a inhabilitar no cargado/disponible.");
+            }
+        }
+
+        public async Task enableProduct(Guid id)
+        {
+            var productById = await _repository.GetById<Product>(id);
+            if (productById != null)
+            {
+                productById.isActive = true;
+                await _repository.Update(productById);
+            }
+            else
+            {
+                throw new NoFoundEntityException("Producto a habilitar no cargado/disponible.");
             }
         }
     }

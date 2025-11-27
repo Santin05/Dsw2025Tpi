@@ -147,7 +147,7 @@ namespace Dsw2025Tpi.Application.Services
             }
         }
 
-        public async Task<PageModel<Order>?> getAllFilteredOrders(string? status, int pageNumber = 1, int pageSize = 20)
+        public async Task<PageModel<OrderClient>?> getAllFilteredOrders(string? searchName, string? status, int pageNumber = 1, int pageSize = 20)
         {
             var orders = await _repository.GetAll<Order>();
             if (orders.IsNullOrEmpty()) { throw new NoFoundEntityException("Ninguna orden cargada/disponible."); }
@@ -157,6 +157,7 @@ namespace Dsw2025Tpi.Application.Services
                 if(pageNumber <= 0 || pageSize <= 0) { throw new ArgumentException("Ingrese un tamaño de página o número de página correcto (Mayor a cero y entero)."); }
                 if (!string.IsNullOrWhiteSpace(status)) 
                 {
+                    status = status.ToUpper();
                     switch (status)
                     {
                         case "PENDING":
@@ -197,13 +198,37 @@ namespace Dsw2025Tpi.Application.Services
                         default:
                             throw new ArgumentException("Ingrese un status de orden válido (PENDING, PROCESSING, SHIPPED, DELIVERED, CANCELLED).");
                     }
-                } else { filteredOrders = orders.ToList(); }
-                   filteredOrders.OrderByDescending(order => order.date);
+                }
+                if (!string.IsNullOrWhiteSpace(searchName))
+                {
+                    if (filteredOrders.IsNullOrEmpty())
+                    {
+                        foreach (var order in orders)
+                        {
+                            if (order.id.ToString().Contains(searchName) || order.customerId.ToString().Contains(searchName)) { filteredOrders.Add(order); }
+                        }
+                        if (filteredOrders.IsNullOrEmpty()) { throw new NoFoundEntityException($"Ninguno producto cargada/disponible que contenga en su nombre {searchName}."); }
+                    }
+                    else
+                    {
+                        var filteredOrdersByName = new List<Order>();
+                        foreach (var order in filteredOrders)
+                        {
+                            if (order.id.ToString().Contains(searchName) || order.customerId.ToString().Contains(searchName)) { filteredOrdersByName.Add(order); }
+                        }
+                        if (filteredOrdersByName.IsNullOrEmpty()) { throw new NoFoundEntityException($"Ninguno producto cargada/disponible que contenga en su nombre {searchName}."); }
+                        else { filteredOrders = filteredOrdersByName; filteredOrdersByName = null; }
+                    }
+                }
+                if (filteredOrders.IsNullOrEmpty()) { filteredOrders = orders.ToList(); };
+                filteredOrders.OrderByDescending(order => order.date);
                 int totalPages = (int)Math.Ceiling(filteredOrders.Count() / (double)pageSize);
                 if (filteredOrders.Count() > pageSize)
                 {
                     filteredOrders.RemoveRange((pageSize), (filteredOrders.Count() - pageSize));
                 }
+
+                var ordersClients = new List<OrderClient>();
                 foreach (var order in filteredOrders)
                 {
                     var orderItems = await _repository.GetAll<OrderItem>();
@@ -213,10 +238,15 @@ namespace Dsw2025Tpi.Application.Services
                         if (order.id == orderItem.orderId) { allItems.Add(orderItem); }
                     }
                     order.orderItems = allItems;
+
+                    var orderClient = new OrderClient(order.date, order.shippingAddress, order.billlingAddress, order.notes, order.totalAmount, order.orderItems, order.status,order.customerId, "No Client Name Found.", order.id);
+                    var customers = await _repository.GetById<Customer>(order.customerId);
+                    if (customers != null) { orderClient.customerName = customers.name; }
+                    ordersClients.Add(orderClient);
                 }
-                return new PageModel<Order>
+                return new PageModel<OrderClient>
                 {
-                    elementsPage = filteredOrders,
+                    elementsPage = ordersClients,
                     pageNumber = pageNumber.ToString(),
                     pageSize = pageSize.ToString(),
                     totalPages = totalPages.ToString()
@@ -260,13 +290,13 @@ namespace Dsw2025Tpi.Application.Services
             }
         }
 
-        public async Task upgrateOrderStatus(Guid id, OrderUpdateModel status)
+        public async Task upgrateOrderStatus(Guid id, string? status)
         {
             var orderById = await _repository.GetById<Order>(id);
 
             if (orderById != null)
             {
-                var newStatus = status.newStatus.ToUpper();
+                string newStatus = status.ToUpper();
                 if(newStatus == OrderStatus.CANCELLED.ToString()) 
                 {
                     orderById.status = OrderStatus.CANCELLED;

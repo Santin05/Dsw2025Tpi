@@ -31,15 +31,30 @@ namespace Dsw2025Tpi.Api.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Login([FromBody] LoginModel request) 
         {
-            var user = await userManager.FindByNameAsync(request.Username);
-            if (user==null) { return Unauthorized("El usuario o contraseña ingresados no son correctos."); }
+            try
+            {
+                var user = await userManager.FindByNameAsync(request.Username);
+                if (user == null) { return Unauthorized("El usuario o contraseña ingresados no son correctos."); }
 
-            var result = await signInManager.CheckPasswordSignInAsync(user, request.Password, false);
-            if (!result.Succeeded) { return Unauthorized("El usuario o contraseña ingresados no son correctos."); }
+                var result = await signInManager.CheckPasswordSignInAsync(user, request.Password, false);
+                if (!result.Succeeded) { return Unauthorized("El usuario o contraseña ingresados no son correctos."); }
 
-            var role = await userManager.GetRolesAsync(user);
-            var token = jwtTokenService.CreateToken(user.UserName, role.FirstOrDefault());
-            return Ok(new {token});
+                var role = await userManager.GetRolesAsync(user);
+                var userId = new Guid();
+                if (role.FirstOrDefault() == "User")
+                {
+                    var customerName = user.UserName;
+                    var customer = await customersManagementService.getCustomerByName(customerName);
+                    if(customer != null) { userId = customer.id; }
+                    else { userId = Guid.Empty; }
+                }
+                var token = jwtTokenService.CreateToken(user.UserName, role.FirstOrDefault());
+                return Ok(new { token, user, role, userId });
+            } 
+            catch (NoFoundEntityException)
+            {
+                return Unauthorized("El usuario o contraseña ingresados no son correctos.");
+            }
         }
 
         [HttpPost("register")]
