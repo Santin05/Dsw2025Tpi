@@ -5,6 +5,7 @@ using Dsw2025Tpi.Application.Exceptions;
 using Dsw2025Tpi.Application.Dtos;
 using System.Net.Http.Headers;
 using Microsoft.IdentityModel.Tokens;
+using System.Collections.Generic;
 
 namespace Dsw2025Tpi.Application.Services
 {
@@ -246,6 +247,12 @@ namespace Dsw2025Tpi.Application.Services
                     var orderClient = new OrderClient(order.date, order.shippingAddress, order.billlingAddress, order.notes, order.totalAmount, order.orderItems, order.status,order.customerId, "No Client Name Found.", order.id);
                     var customers = await _repository.GetById<Customer>(order.customerId);
                     if (customers != null) { orderClient.customerName = customers.name; }
+
+                    //Implemntación parcial de número de orden.
+                    Random rnd = new Random();
+                    var totalCount = filteredOrders.Count();
+                    orderClient.orderNumber = rnd.Next(totalCount, 9999);
+
                     ordersClients.Add(orderClient);
                 }
                 return new PageModel<OrderClient>

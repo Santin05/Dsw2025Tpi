@@ -18,7 +18,8 @@ namespace Dsw2025Tpi.Domain.Entities
         public Guid customerId { get; set; }
 
         public string? customerName { get; set; }
-        public OrderClient(DateTime Date, string AddressShip, string AddressBill, string Notes, decimal Total, IEnumerable<OrderItem> Items, OrderStatus status, Guid customerId, string? customerName, Guid id)
+        public int? orderNumber { get; set; }
+        public OrderClient(DateTime Date, string AddressShip, string AddressBill, string Notes, decimal Total, IEnumerable<OrderItem> Items, OrderStatus status, Guid customerId, string? customerName,Guid id)
         {
             date = Date;
             shippingAddress = AddressShip;
@@ -29,6 +30,22 @@ namespace Dsw2025Tpi.Domain.Entities
             this.status = status;
             this.customerId = customerId;
             this.customerName = customerName;
+            orderNumber = 0;
+            this.id = id;
+        }
+
+        public OrderClient(DateTime Date, string AddressShip, string AddressBill, string Notes, decimal Total, IEnumerable<OrderItem> Items, OrderStatus status, Guid customerId, string? customerName, int orderNumber, Guid id)
+        {
+            date = Date;
+            shippingAddress = AddressShip;
+            billlingAddress = AddressBill;
+            notes = Notes;
+            totalAmount = Total;
+            orderItems = Items;
+            this.status = status;
+            this.customerId = customerId;
+            this.customerName = customerName;
+            this.orderNumber = orderNumber;
             this.id = id;
         }
 
