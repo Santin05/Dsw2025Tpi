@@ -112,7 +112,13 @@ namespace Dsw2025Tpi.Application.Services
                 int totalPages = (int)Math.Ceiling(filteredProducts.Count() / (double)pageSize);
                 if (filteredProducts.Count() > pageSize)
                 {
-                    filteredProducts.RemoveRange((pageSize), (filteredProducts.Count() - pageSize));
+                    for(int i=0; i < totalPages; i++) 
+                    {
+                        if (i == (pageNumber - 1)) 
+                        {
+                            filteredProducts = filteredProducts.GetRange((i*pageSize), (pageSize));
+                        }
+                    }
                 }
                 return new PageModel<Product>
                 {

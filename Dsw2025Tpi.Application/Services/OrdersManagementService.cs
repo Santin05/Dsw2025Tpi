@@ -64,7 +64,7 @@ namespace Dsw2025Tpi.Application.Services
                 {
                     if(q.quantity <= 0) 
                     {
-                        throw new ArgumentException("Cantidad de uno de los productos menor/igual a cero.");
+                        throw new ArgumentException("Cantidad de uno de los productos en la orden menor/igual a cero. Por favor, revise los productos de la orden e intentelo nuevamente.");
                     }
                     if (!(allProducts.ToList().Exists(p => ( p.id == q.productId && p.name == q.name && p.currentUnitPrice == q.currentUnitPrice ))))
                     {
@@ -225,7 +225,16 @@ namespace Dsw2025Tpi.Application.Services
                 int totalPages = (int)Math.Ceiling(filteredOrders.Count() / (double)pageSize);
                 if (filteredOrders.Count() > pageSize)
                 {
-                    filteredOrders.RemoveRange((pageSize), (filteredOrders.Count() - pageSize));
+                    if (filteredOrders.Count() > pageSize)
+                    {
+                        for (int i = 0; i < totalPages; i++)
+                        {
+                            if (i == (pageNumber - 1))
+                            {
+                                filteredOrders = filteredOrders.GetRange((i * pageSize), (pageSize));
+                            }
+                        }
+                    }
                 }
 
                 var ordersClients = new List<OrderClient>();
