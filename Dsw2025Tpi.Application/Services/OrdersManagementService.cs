@@ -227,13 +227,8 @@ namespace Dsw2025Tpi.Application.Services
                 {
                     if (filteredOrders.Count() > pageSize)
                     {
-                        for (int i = 0; i < totalPages; i++)
-                        {
-                            if (i == (pageNumber - 1))
-                            {
-                                filteredOrders = filteredOrders.GetRange((i * pageSize), (pageSize));
-                            }
-                        }
+                        if(pageNumber == totalPages) { filteredOrders = filteredOrders.GetRange( ((pageNumber-1)* pageSize), filteredOrders.Count()-(pageSize* (pageNumber - 1)) ); }
+                        else { filteredOrders = filteredOrders.GetRange(((pageNumber - 1) * pageSize), (pageSize)); }
                     }
                 }
 
